@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+  <html>
+    <head>
+      <meta charset="UTF-8" />
+      <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+      <meta name="viewport" content="width=device-width, initial-scale0" />
+      <title>Voice recorder</title>
+      <style>
+        * {
+          margin: 0px;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        body {
+          font-family: Arial, Helvetica, sans-serif;
+          text-align: center;
+          margin-top: 20%;
+        }
+        button {
+          padding: 7px 20px;
+          cursor: pointer;
+        }
+
+        #response {
+          background-color: #e0e0e0;
+          border-radius: 8px;
+          margin-top: 20px;
+          padding: 12px;
+          width: fit-content;
+          margin-left: auto;
+          margin-right: auto;
+        }
+      </style>
+      <script src="https://cdn.jsdelivr.net/npm/axios@1.6.2/dist/axios.min.js"></script>
+      <script src="https://www.WebRTC-Experiment.com/RecordRTC.js"></script>
+    </head>
+    <body>
+      <button id="startRecording">Start</button>
+      <button id="stopRecording">Stop</button>
+      <br />
+      <p id="isRecording">Click start button to record</p>
+      <audio src="" id="audioElement" controls></audio>
+      <div id="response">No Transcription Available</div>
+
+      <script>
+        let transcribedData = "";
+        let formData;
+        let recordAudio;
+        let hasInitialResponse = false;
+        let startTime, timeTaken, endTime = null;
+
+        document
+          .getElementById("startRecording")
+          .addEventListener("click", initFunction);
+        let isRecording = document.getElementById("isRecording");
+
+        function initFunction() {
+          const synth = window.speechSynthesis
+
+          function speak(content){
+            const utterThis = new SpeechSynthesisUtterance(content)
+            synth.speak(utterThis)
+          }
+
+          function getResponse(text) {
+            axios
+              .post("http://localhost:3000/respond", { text })
+              .then(function (response) {
+                console.log(response);
+              })
+              .catch(function (err) {
+                console.log(err);
+              });
+          }
+
+          function getFormattedTranscribedData(data, time) {
+            return `<i>${data}</i>   <b>${time} sec</b> <br/>`;
+          }
+
+          function createBlob(blob, isLast = false) {
+            formData = new FormData();
+            formData.append("file", blob);
+            document.getElementById("audioElement").src =
+              URL.createObjectURL(blob);
+            transcribeAudio(formData, isLast);
+          }
+
+          async function transcribeAudio(formData, isLast = false) {
+            if (isLast) {
+              formData.append("lastChunk", true);
+            }
+
+            const response = await fetch(`http://localhost:3000/upload`, {
+              method: "POST",
+              body: formData,
+            });
+
+            let chatMessage = "";
+            let reader = response.body
+              ?.pipeThrough(new TextDecoderStream())
+              .getReader();
+
+            while (reader) {
+              let stream = await reader.read();
+
+              if (stream.done) {
+                endTime = new Date().getTime();
+                timeTaken = (endTime - startTime)/1000;
+                break;
+              }
+
+              const chunks = stream.value
+                .replaceAll(/^data: /gm, "")
+                .split("\n")
+                .filter((c) => Boolean(c.length) && c !== "[DONE]")
+                .map((c) => JSON.parse(c));
+                
+              if (chunks) {
+                for (let chunk of chunks) {
+                  const content = chunk.choices[0].delta.content;
+                  speak(content)
+
+                  if (!content) continue;
+                  chatMessage += content;
+
+                  if (!hasInitialResponse) {
+                    document.getElementById("response").innerHTML = "";
+                    hasInitialResponse = true;
+                  }
+
+                  document.getElementById("response").innerHTML =
+                    getFormattedTranscribedData(chatMessage, timeTaken);
+                }
+              }
+            }
+
+            document.getElementById("response").innerHTML =
+                    getFormattedTranscribedData(chatMessage, timeTaken);
+          }
+
+          async function getUserMedia(constraints) {
+            if (window.navigator.mediaDevices) {
+              return window.navigator.mediaDevices.getUserMedia(constraints);
+            }
+            let legacyApi =
+              navigator.getUserMedia ||
+              navigator.webkitGetUserMedia ||
+              navigator.mozGetUserMedia ||
+              navigator.msGetUserMedia;
+            if (legacyApi) {
+              return new Promise(function (resolve, reject) {
+                legacyApi.bind(window.navigator)(constraints, resolve, reject);
+              });
+            } else {
+              alert("user api not supported");
+            }
+          }
+
+          isRecording.textContent = "Recording...";
+
+          function handlerFunction(stream) {
+            recordAudio = RecordRTC(stream, {
+              type: "audio",
+              mimeType: "audio/wav",
+              sampleRate: 44100,
+              desiredSampRate: 16000,
+              timeSlice: 3000,
+              recorderType: StereoAudioRecorder,
+              numberOfAudioChannels: 1,
+              checkForInactiveTracks: true,
+              ondataavailable: function (blob) {
+                //createBlob(blob);
+              },
+            });
+            recordAudio.startRecording();
+          }
+
+          function startusingBrowserMicrophone(boolean) {
+            getUserMedia({ audio: boolean }).then((stream) => {
+              handlerFunction(stream);
+            });
+          }
+
+          startusingBrowserMicrophone(true);
+
+          document
+            .getElementById("stopRecording")
+            .addEventListener("click", (e) => {
+              recordAudio.stopRecording(function (blob) {
+                // 2. In case you want to sent all audio at once
+                //createBlob(recordAudio.blob, true);
+                startTime = new Date().getTime();
+                document.getElementById("response").innerHTML = "Loading ..."
+                createBlob(recordAudio.getBlob(), true);
+                document.getElementById("audioElement").src = blob;
+              });
+              isRecording.textContent = "Click play button to start listening";
+            });
+        }
+      </script>
+    </body>
+  </html>
+</html>
