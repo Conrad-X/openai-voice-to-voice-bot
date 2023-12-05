@@ -13,10 +13,12 @@
     "@aws-sdk/client-transcribe-streaming": "^3.462.0",
     "aws-sdk": "^2.1509.0",
     "body-parser": "^1.20.2",
+    "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "ffmpeg": "^0.0.4",
     "gtts": "^0.2.1",
     "multer": "^1.4.5-lts.1",
+    "nocache": "^4.0.0",
     "node-record-lpcm16": "^1.0.1",
     "nodemon": "^3.0.1",
     "openai": "^4.20.1"

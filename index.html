@@ -5,9 +5,6 @@
       <meta charset="UTF-8" />
       <meta http-equiv="X-UA-Compatible" content="IE=edge" />
       <meta name="viewport" content="width=device-width, initial-scale0" />
-      <meta http-equiv="cache-control" content="no-cache" />
-      <meta http-equiv="expires" content="0" />
-      <meta http-equiv="pragma" content="no-cache" />
       <title>Voice recorder</title>
       <style>
         * {
@@ -43,7 +40,7 @@
       <button id="stopRecording">Stop</button>
       <br />
       <p id="isRecording">Click start button to record</p>
-      <audio src="" id="audioElement" controls preload="none"></audio>
+      <audio src="" id="audioElement" controls></audio>
       <div id="response">No Transcription Available</div>
 
       <script>
@@ -77,6 +74,85 @@
               .catch(function (err) {
                 console.log(err);
               });
+          }
+
+          function getFormattedTranscribedData(data, time) {
+            return `<i>${data}</i>   <b>${time} sec</b> <br/>`;
+          }
+
+          function createBlob(blob, isLast = false) {
+            formData = new FormData();
+            formData.append("file", blob);
+            document.getElementById("audioElement").src =
+              URL.createObjectURL(blob);
+            transcribeAudio(formData, isLast);
+          }
+
+          async function transcribeAudio(formData, isLast = false) {
+            if (isLast) {
+              formData.append("lastChunk", true);
+            }
+
+            const response = await fetch(`http://localhost:3000/upload-v2`, {
+              method: "POST",
+              body: formData,
+            });
+
+            let chatMessage = "";
+            let reader = response.body
+              ?.pipeThrough(new TextDecoderStream())
+              .getReader();
+
+            while (reader) {
+              let stream = await reader.read();
+
+              if (stream.done) {
+                endTime = new Date().getTime();
+                timeTaken = (endTime - startTime) / 1000;
+                break;
+              }
+
+              const chunks = stream.value
+                .replaceAll(/^data: /gm, "")
+                .split("\n")
+                .filter((c) => Boolean(c.length) && c !== "[DONE]")
+                .map((c) => JSON.parse(c));
+
+              if (chunks) {
+                for (let chunk of chunks) {
+                  const content = chunk.choices[0].delta.content;
+
+                  if (!content) continue;
+                  chatMessage += content;
+
+                  if (!hasInitialResponse) {
+                    document.getElementById("response").innerHTML = "";
+                    hasInitialResponse = true;
+                  }
+
+                  document.getElementById("response").innerHTML =
+                    getFormattedTranscribedData(chatMessage, timeTaken);
+                }
+              }
+            }
+
+            document.getElementById("response").innerHTML =
+              getFormattedTranscribedData(chatMessage, timeTaken);
+
+            console.log("Fetching speaking tokens ...");
+            const responseData = await fetch(`http://localhost:3000/speak`, {
+              method: "POST",
+              body: JSON.stringify({ text: chatMessage }),
+              headers: {
+                "Content-Type": "application/json",
+              },
+            });
+
+            if (responseData) {
+              document.getElementById("audioElement").src =
+                "http://localhost:3000/uploads/output.mp3";
+              document.getElementById("audioElement").play();
+            }
           }
 
           async function getUserMedia(constraints) {
@@ -123,106 +199,21 @@
           }
 
           startusingBrowserMicrophone(true);
-        }
-
-        function createBlob(blob, isLast = false) {
-          formData = new FormData();
-          formData.append("file", blob);
-          document.getElementById("audioElement").src =
-            URL.createObjectURL(blob);
-          transcribeAudio(formData, isLast);
-        }
-
-        function getFormattedTranscribedData(data, time) {
-          return `<i>${data}</i>   <b>${time} sec</b> <br/>`;
-        }
-
-        async function transcribeAudio(formData, isLast = false) {
-          let startTime = new Date().getTime();
-          let streamEnded = false;
-
-          if (isLast) {
-            formData.append("lastChunk", true);
-          }
-
-          const response = await fetch(`http://localhost:3000/upload-v2`, {
-            method: "POST",
-            body: formData,
-          });
-
-          document.getElementById("response").innerHTML = "";
-
-          let reader = response.body
-            ?.pipeThrough(new TextDecoderStream())
-            .getReader();
-
-          document.getElementById(
-            "audioElement"
-          ).src = `http://localhost:3000/uploads/output.mp3?cb=${new Date().getTime()}`;
-
-          document.getElementById("audioElement").load();
-          document.getElementById("audioElement").play();
-
-          let streamEndedCounter = 0;
 
           document
-            .getElementById("audioElement")
-            .addEventListener("ended", function () {
-              if (streamEnded) {
-                streamEndedCounter++;
-              }
-
-              if (streamEndedCounter > 2) {
-                document.getElementById("audioElement").removeEventListener("ended");
-                return;
-              }
-
-              let duration = document.getElementById("audioElement").duration;
-              document.getElementById(
-                "audioElement"
-              ).src = `http://localhost:3000/uploads/output.mp3?cb=${new Date().getTime()}`;
-
-              document.getElementById("audioElement").currentTime = duration;
-              document.getElementById("audioElement").play();
+            .getElementById("stopRecording")
+            .addEventListener("click", (e) => {
+              recordAudio.stopRecording(function (blob) {
+                // 2. In case you want to sent all audio at once
+                //createBlob(recordAudio.blob, true);
+                startTime = new Date().getTime();
+                document.getElementById("response").innerHTML = "Loading ...";
+                createBlob(recordAudio.getBlob(), true);
+                document.getElementById("audioElement").src = blob;
+              });
+              isRecording.textContent = "Click play button to start listening";
             });
-
-          while (reader) {
-            let element = document.getElementById("audioElement");
-            let duration = element.duration;
-
-            let stream = await reader.read();
-
-            let endTime = new Date().getTime();
-            let timeTaken = (endTime - startTime) / 1000;
-
-            if (stream.value) {
-              let streamedData = stream.value.replace("data: ", "");
-              document.getElementById("response").innerHTML +=
-                getFormattedTranscribedData(streamedData, timeTaken);
-            }
-
-            if (stream.done) {
-              streamEnded = true;
-              break;
-            }
-          }
         }
-
-        document
-          .getElementById("stopRecording")
-          .addEventListener("click", (e) => {
-            recordAudio.stopRecording(function (blob) {
-              // 2. In case you want to sent all audio at once
-              //createBlob(recordAudio.blob, true);
-
-              startTime = new Date().getTime();
-              document.getElementById("response").innerHTML = "Loading ...";
-              createBlob(recordAudio.blob, true);
-              document.getElementById("audioElement").src = blob;
-              document.getElementById("audioElement").load();
-            });
-            isRecording.textContent = "Click play button to start listening";
-          });
       </script>
     </body>
   </html>
