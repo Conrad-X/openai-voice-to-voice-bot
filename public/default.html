@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+  <html>
+    <head>
+      <meta charset="UTF-8" />
+      <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+      <meta name="viewport" content="width=device-width, initial-scale0" />
+      <meta http-equiv="cache-control" content="no-cache" />
+      <meta http-equiv="expires" content="0" />
+      <meta http-equiv="pragma" content="no-cache" />
+      <title>Voice recorder</title>
+      <style>
+        * {
+          margin: 0px;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        body {
+          font-family: Arial, Helvetica, sans-serif;
+          text-align: center;
+          margin-top: 18%;
+        }
+        button {
+          padding: 7px 20px;
+          cursor: pointer;
+        }
+
+        #response {
+          background-color: #e0e0e0;
+          border-radius: 8px;
+          margin-top: 20px;
+          padding: 12px;
+          width: fit-content;
+          margin-left: auto;
+          margin-right: auto;
+        }
+      </style>
+      <script src="https://cdn.jsdelivr.net/npm/axios@1.6.2/dist/axios.min.js"></script>
+      <script src="https://www.WebRTC-Experiment.com/RecordRTC.js"></script>
+    </head>
+    <body>
+      <button id="startRecording">Start</button>
+      <button id="stopRecording">Stop</button>
+      <br />
+      <p style="margin-top: 4px" id="isRecording">Click start button to record</p> <br/>
+      <audio src="" id="audioElement" controls preload="none"></audio>
+      <div id="response">No Transcription Available</div>
+
+      <script>
+        let transcribedData = "";
+        let formData;
+        let recordAudio;
+        let hasInitialResponse = false;
+        let startTime,
+          timeTaken,
+          endTime = null;
+
+        document
+          .getElementById("startRecording")
+          .addEventListener("click", initFunction);
+        let isRecording = document.getElementById("isRecording");
+
+        function initFunction() {
+          const synth = window.speechSynthesis;
+
+          function speak(content) {
+            const utterThis = new SpeechSynthesisUtterance(content);
+            synth.speak(utterThis);
+          }
+
+          function getResponse(text) {
+            axios
+              .post("http://localhost:3000/respond", { text })
+              .then(function (response) {
+                console.log(response);
+              })
+              .catch(function (err) {
+                console.log(err);
+              });
+          }
+
+          async function getUserMedia(constraints) {
+            if (window.navigator.mediaDevices) {
+              return window.navigator.mediaDevices.getUserMedia(constraints);
+            }
+            let legacyApi =
+              navigator.getUserMedia ||
+              navigator.webkitGetUserMedia ||
+              navigator.mozGetUserMedia ||
+              navigator.msGetUserMedia;
+            if (legacyApi) {
+              return new Promise(function (resolve, reject) {
+                legacyApi.bind(window.navigator)(constraints, resolve, reject);
+              });
+            } else {
+              alert("user api not supported");
+            }
+          }
+
+          isRecording.textContent = "Recording...";
+
+          function handlerFunction(stream) {
+            recordAudio = RecordRTC(stream, {
+              type: "audio",
+              mimeType: "audio/wav",
+              sampleRate: 44100,
+              desiredSampRate: 16000,
+              timeSlice: 3000,
+              recorderType: StereoAudioRecorder,
+              numberOfAudioChannels: 1,
+              checkForInactiveTracks: true,
+              ondataavailable: function (blob) {
+                //createBlob(blob);
+              },
+            });
+            recordAudio.startRecording();
+          }
+
+          function startusingBrowserMicrophone(boolean) {
+            getUserMedia({ audio: boolean }).then((stream) => {
+              handlerFunction(stream);
+            });
+          }
+
+          startusingBrowserMicrophone(true);
+        }
+
+        function createBlob(blob, isLast = false) {
+          formData = new FormData();
+          formData.append("file", blob);
+          document.getElementById("audioElement").src =
+            URL.createObjectURL(blob);
+          transcribeAudio(formData, isLast); 
+        }
+
+        function getFormattedTranscribedData(data, time) {
+          return `<i>${data}</i>   <b>${time} sec</b> <br/>`;
+        }
+
+        async function transcribeAudio(formData, isLast = false) {
+          let startTime = new Date().getTime();
+          let streamEnded = false;
+
+          if (isLast) {
+            formData.append("lastChunk", true);
+          }
+
+          const response = await fetch(`http://localhost:3000/upload-v2`, {
+            method: "POST",
+            body: formData,
+          });
+
+          document.getElementById("response").innerHTML = "";
+
+          let reader = response.body
+            ?.pipeThrough(new TextDecoderStream())
+            .getReader();
+
+          document.getElementById(
+            "audioElement"
+          ).src = `http://localhost:3000/uploads/output.mp3?cb=${new Date().getTime()}`;
+
+          document.getElementById("audioElement").load();
+          document.getElementById("audioElement").play();
+
+          let streamEndedCounter = 0;
+
+          document
+            .getElementById("audioElement")
+            .addEventListener("ended", function () {
+              if (streamEnded) {
+                streamEndedCounter++;
+              }
+
+              if (streamEndedCounter > 1) {
+                document.getElementById("audioElement").removeEventListener("ended");
+                return;
+              }
+
+              let duration = document.getElementById("audioElement").duration;
+              document.getElementById(
+                "audioElement"
+              ).src = `http://localhost:3000/uploads/output.mp3?cb=${new Date().getTime()}`;
+
+              document.getElementById("audioElement").currentTime = duration;
+              document.getElementById("audioElement").play();
+            });
+
+          while (reader) {
+            let element = document.getElementById("audioElement");
+            let duration = element.duration;
+
+            let stream = await reader.read();
+
+            let endTime = new Date().getTime();
+            let timeTaken = (endTime - startTime) / 1000;
+
+            if (stream.value) {
+              let streamedData = stream.value.replace("data: ", "");
+              document.getElementById("response").innerHTML +=
+                getFormattedTranscribedData(streamedData, timeTaken);
+            }
+
+            if (stream.done) {
+              streamEnded = true;
+              break;
+            }
+          }
+        }
+
+        document
+          .getElementById("stopRecording")
+          .addEventListener("click", (e) => {
+            recordAudio.stopRecording(function (blob) {
+              // 2. In case you want to sent all audio at once
+              //createBlob(recordAudio.blob, true);
+
+              startTime = new Date().getTime();
+              document.getElementById("response").innerHTML = "Processing ...";
+              createBlob(recordAudio.blob, true);
+              document.getElementById("audioElement").src = blob;
+              document.getElementById("audioElement").load();
+            });
+            isRecording.textContent = "Click play button to start listening";
+          });
+      </script>
+    </body>
+  </html>
+</html>

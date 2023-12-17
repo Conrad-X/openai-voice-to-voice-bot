@@ -54,11 +54,10 @@
         id="audioElement"
         controls
       ></audio>
-
       <div id="response">No Transcription Available</div>
 
       <script>
-        let socket;
+        let socket = io.connect("http://localhost:3000");
         let transcribedData = "";
         let formData;
         let recordAudio;
@@ -67,34 +66,14 @@
         let startTime,
           timeTaken,
           endTime = null;
-        let stopEventCalled = false;
-        let startEventCalled = false;
-        let fetchedResponse = [];
-        let audioBuffers = [];
-        const DONE = "[DONE]"
-        let streamEnded = false;
-        let audioEndedEventCalled = false;
-        let firstAudioPlayCall = false;
-
-        function createSocketConnection() {
-          if (!socket) {
-            socket = io.connect("http://localhost:3000");
-            console.log("Connection established!");
-          }
-        }
-        createSocketConnection();
 
         document
           .getElementById("startRecording")
-          .addEventListener("click", initFunction, false);
+          .addEventListener("click", initFunction);
         let isRecording = document.getElementById("isRecording");
 
         function initFunction() {
           const synth = window.speechSynthesis;
-          stopEventCalled = false;
-          startEventCalled = true;
-          streamEnded = false;
-          firstAudioPlayCall = false;
 
           function speak(content) {
             const utterThis = new SpeechSynthesisUtterance(content);
@@ -110,6 +89,10 @@
               .catch(function (err) {
                 console.log(err);
               });
+          }
+
+          function getFormattedTranscribedText(data, time) {
+            return `<i>${data}</i>`;
           }
 
           function createBlob(blob, isLast = false) {
@@ -218,6 +201,7 @@
                 createBlob(blob);
               },
             });
+
             recordAudio.startRecording();
           }
 
@@ -229,79 +213,64 @@
 
           startusingBrowserMicrophone(true);
 
-          function stopRecording(event) {
-            if (!stopEventCalled) {
-              console.log("Click");
-              recordAudio.stopRecording(function (blob) {
-                startTime = new Date().getTime();
-              });
-
-              isRecording.textContent = "Click play button to start listening";
-              socket.emit("microphone", "[DONE]");
-              stopEventCalled = true;
-              startEventCalled = false;
-              hasInitialResponse = false;
-            }
-          }
-
           document
             .getElementById("stopRecording")
-            .addEventListener("click", stopRecording, false);
+            .addEventListener("click", (e) => {
+              recordAudio.stopRecording(function (blob) {
+                socket.emit("microphone", "[DONE]");
+                startTime = new Date().getTime();
+              });
+              isRecording.textContent = "Click play button to start listening";
+            });
+
+          socket.on("transcription", function (data) {
+            console.log(`Received Transcription... ${data}`);
+            document.getElementById("response").innerHTML = "";
+          });
+
+          let fetchedResponse = [];
+
+          socket.on("response", function (data) {
+            if (!hasInitialResponse) {
+              document.getElementById("response").innerHTML = "";
+              endTime = new Date().getTime();
+              timeTaken = (endTime - startTime) / 1000;
+              console.log(`Response Received In ${timeTaken}`);
+
+              document.getElementById("response").innerHTML +=
+                getFormattedTranscribedText(data);
+              hasInitialResponse = true;
+
+              document.getElementById(
+                "audioElement"
+              ).src = `http://localhost:3000/uploads/output.mp3?cb=${new Date().getTime()}`;
+
+              document.getElementById("audioElement").load();
+              document.getElementById("audioElement").play();
+            } else {
+              document.getElementById("response").innerHTML +=
+                getFormattedTranscribedText(data);
+
+              fetchedResponse.push(getFormattedTranscribedText(data));
+            }
+          });
 
           document
             .getElementById("audioElement")
             .addEventListener("ended", function () {
-              if (audioBuffers.length > 0) {
-                playAudio();
-              }
-              else{
-                firstAudioPlayCall = false;
+              if (fetchedResponse.length > 0) {
+                let duration = document.getElementById("audioElement").duration;
+                document.getElementById(
+                  "audioElement"
+                ).src = `http://localhost:3000/uploads/output.mp3?cb=${new Date().getTime()}`;
+
+                document.getElementById("audioElement").currentTime = duration;
+                
+                document.getElementById("audioElement").play();
+                fetchedResponse.pop();
               }
             });
         }
-
-        function getFormattedTranscribedText(data, time) {
-          return `<i>${data}</i>`;
-        }
-
-        socket.on("transcription", function (data) {
-          console.log(`Received Transcription... ${data}`);
-          document.getElementById("response").innerHTML = "";
-        });
-
-        socket.on("audio", function (buffer) {
-          console.log(`Received Audio... ${buffer}`);
-          audioBuffers.push(buffer);
-
-          if(!firstAudioPlayCall){
-            playAudio();
-            firstAudioPlayCall = true;
-          }
-        });
-
-        function playAudio() {
-          if (audioBuffers.length > 0) {
-            let buffer = audioBuffers.shift();
-            document.getElementById("audioElement").src = URL.createObjectURL(
-              new Blob([buffer])
-            );
-            document.getElementById("audioElement").play();
-            audioEndedEventCalled = false;
-          }
-        }
-
-        socket.on("response", function (data) {
-          if(data === DONE){
-            streamEnded = true;  
-          }
-          else{
-            endTime = new Date().getTime();
-            timeTaken = (endTime - startTime) / 1000;
-            console.log(`Response Received In ${timeTaken}`);
-            document.getElementById("response").innerHTML += getFormattedTranscribedText(data);
-            console.log(`Response - ${data}`);
-          }
-        });
       </script>
     </body>
   </html>

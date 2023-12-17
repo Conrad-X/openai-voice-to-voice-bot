@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon server.js",
+    "start": "nodemon sockets-server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -21,6 +21,8 @@
     "nocache": "^4.0.0",
     "node-record-lpcm16": "^1.0.1",
     "nodemon": "^3.0.1",
-    "openai": "^4.20.1"
+    "openai": "^4.20.1",
+    "pubsub-js": "^1.9.4",
+    "socket.io": "^4.7.2"
   }
 }

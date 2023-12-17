@@ -34,6 +34,13 @@ const upload = multer({
 });
 
 app.post("/upload-v2", upload.single("file"), async function (req, res) {
+  const headers = {
+    'Content-Type': 'text/event-stream',
+    'Connection': 'keep-alive',
+    'Cache-Control': 'no-cache'
+  };
+  res.writeHead(200, headers);
+
   const transcription = await openai.audio.transcriptions.create({
     file: fs.createReadStream(`public/uploads/${req.file.filename}`),
     model: "whisper-1",
@@ -47,23 +54,18 @@ app.post("/upload-v2", upload.single("file"), async function (req, res) {
     const stream = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [
-        { role: "system", content: "you are a conversational chatbot, respond in terms of paragraphs and use commas and full stop where necessary, avoid bullet point answers" },
+        { role: "system", content: "you are a conversational chatbot, keep it short and keep it precise especially the first sentence. Respond in terms of paragraphs and use commas and full stop where necessary but keep the sentences short as much as possible, avoid bullet point in answers" },
         { role: "system", content: "keep your answers precise and short, make sure they are not greater than 50 words, in case of a longer answer, rephrase it and dont give away all the information instead question the user if they need more information" }, 
         { role: "user", content: transcription.text }
       ],
-      stream: true,
+      stream: true
     });
 
     let data = "";
     let checkpoint = ""
     counter = false;
 
-    const headers = {
-      'Content-Type': 'text/event-stream',
-      'Connection': 'keep-alive',
-      'Cache-Control': 'no-cache'
-    };
-    res.writeHead(200, headers);
+
     
     for await (const chunk of stream) {
       const content = chunk.choices[0].delta.content;
