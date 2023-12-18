@@ -222,6 +222,7 @@ let checkpoint = "";
 io = socket(server);
 
 async function generateResponse(transcribedData, socket) {
+  if(!transcribedData) return;
   console.log(`Creating Response for '${transcribedData}'`);
 
   if (transcribedData) {
@@ -252,7 +253,6 @@ async function generateResponse(transcribedData, socket) {
 
         if (
           checkpoint.includes(".") ||
-          checkpoint.includes("!") ||
           checkpoint.includes("?")
         ) {
           if (!firstChunkProcessed) {

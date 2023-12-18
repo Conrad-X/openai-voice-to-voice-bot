@@ -289,7 +289,7 @@
             source.connect(context.destination);
             source.loop = false;
 
-            let contextWindow = (context.currentTime - 0.) <= 0? 0: (context.currentTime - 0.9);
+            let contextWindow = (context.currentTime - 1.3) <= 0? 0: (context.currentTime - 1.3);
             source.start(time + contextWindow);
             time += buffer.duration
         }
