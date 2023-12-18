@@ -71,9 +71,8 @@
         let startEventCalled = false;
         let fetchedResponse = [];
         let audioBuffers = [];
-        const DONE = "[DONE]"
+        const DONE = "[DONE]";
         let streamEnded = false;
-        let audioEndedEventCalled = false;
         let firstAudioPlayCall = false;
 
         function createSocketConnection() {
@@ -95,6 +94,7 @@
           startEventCalled = true;
           streamEnded = false;
           firstAudioPlayCall = false;
+          time = 0;
 
           function speak(content) {
             const utterThis = new SpeechSynthesisUtterance(content);
@@ -244,20 +244,22 @@
             }
           }
 
+          function recordingEnded(event) {
+            if (
+              audioBuffers.length > 0 &&
+              document.getElementById("audioElement").ended
+            ) {
+              playAudio();
+            }
+          }
+
           document
             .getElementById("stopRecording")
             .addEventListener("click", stopRecording, false);
 
           document
             .getElementById("audioElement")
-            .addEventListener("ended", function () {
-              if (audioBuffers.length > 0) {
-                playAudio();
-              }
-              else{
-                firstAudioPlayCall = false;
-              }
-            });
+            .addEventListener("ended", recordingEnded, false);
         }
 
         function getFormattedTranscribedText(data, time) {
@@ -269,16 +271,29 @@
           document.getElementById("response").innerHTML = "";
         });
 
-        socket.on("audio", function (buffer) {
-          console.log(`Received Audio... ${buffer}`);
-          audioBuffers.push(buffer);
+        let context = new AudioContext();
+        let time = 0;
+        let source;
 
-          if(!firstAudioPlayCall){
-            playAudio();
-            firstAudioPlayCall = true;
-          }
+        socket.on("audio", function (buffer) {
+          //audioBuffers.push(buffer);
+          //playSound(buffer);
+          context.decodeAudioData(buffer, function(soundBuffer){
+            stream(soundBuffer)
+          });
         });
 
+        function stream(buffer){
+            source = context.createBufferSource();
+            source.buffer = buffer;
+            source.connect(context.destination);
+            source.loop = false;
+
+            let contextWindow = (context.currentTime - 0.) <= 0? 0: (context.currentTime - 0.9);
+            source.start(time + contextWindow);
+            time += buffer.duration
+        }
+        
         function playAudio() {
           if (audioBuffers.length > 0) {
             let buffer = audioBuffers.shift();
@@ -286,19 +301,18 @@
               new Blob([buffer])
             );
             document.getElementById("audioElement").play();
-            audioEndedEventCalled = false;
           }
         }
 
         socket.on("response", function (data) {
-          if(data === DONE){
-            streamEnded = true;  
-          }
-          else{
+          if (data === DONE) {
+            streamEnded = true;
+          } else {
             endTime = new Date().getTime();
             timeTaken = (endTime - startTime) / 1000;
             console.log(`Response Received In ${timeTaken}`);
-            document.getElementById("response").innerHTML += getFormattedTranscribedText(data);
+            document.getElementById("response").innerHTML +=
+              getFormattedTranscribedText(data);
             console.log(`Response - ${data}`);
           }
         });

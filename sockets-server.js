@@ -6,7 +6,6 @@ const fs = require("fs");
 const nocache = require("nocache");
 const socket = require("socket.io");
 const { pipeline } = require("node:stream/promises");
-const PubSub = require("pubsub-js");
 require("dotenv").config();
 
 const openai = new OpenAI({
@@ -252,7 +251,6 @@ async function generateResponse(transcribedData, socket) {
         checkpoint += content;
 
         if (
-          checkpoint.includes(",") ||
           checkpoint.includes(".") ||
           checkpoint.includes("!") ||
           checkpoint.includes("?")
@@ -296,7 +294,6 @@ async function saveFile(blobData, createNewFile) {
   }
 
   console.log("Creating Transcription...");
-  PubSub.publish("transcribe", blobData);
 }
 
 async function createTranscription() {
@@ -310,7 +307,6 @@ async function createTranscription() {
       socketConnection.emit("transcription", transcription.text);
     }
 
-    PubSub.publish("generateResponse", transcription.text);
     return transcription.text;
   } catch (ex) {
     console.log("Exception: transcribing at createTranscription");
