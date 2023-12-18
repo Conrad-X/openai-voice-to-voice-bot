@@ -6,18 +6,25 @@
       <meta http-equiv="X-UA-Compatible" content="IE=edge" />
       <meta name="viewport" content="width=device-width, initial-scale0" />
       <title>Voice recorder</title>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400;500&display=swap"
+        rel="stylesheet"
+      />
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+      />
+      <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
+      />
       <style>
         * {
           margin: 0px;
           padding: 0;
           box-sizing: border-box;
         }
-        body {
-          padding: 30px;
-          font-family: Arial, Helvetica, sans-serif;
-          text-align: center;
-          margin-top: 20%;
-        }
+
         button {
           padding: 7px 20px;
           cursor: pointer;
@@ -26,13 +33,78 @@
         #response {
           background-color: #e0e0e0;
           border-radius: 8px;
-          margin-top: 20px;
+          margin-top: 24px;
           padding: 12px;
           width: fit-content;
           margin-left: auto;
           margin-right: auto;
+          font-family: Roboto;
+          font-weight: 300;
+          text-align: center;
+        }
+
+        .header {
+          display: flex;
+          background-color: #265073;
+          height: 60px;
+          padding: 10px;
+          color: #fff;
+          font-family: Roboto;
+          font-weight: 400;
+          font-size: 20px;
+          line-height: 60px;
+        }
+
+        .heading {
+          margin-left: 5px;
+          line-height: 40px;
+        }
+
+        .beta {
+          font-size: 12px;
+          background-color: #3f6f98;
+          margin-left: 5px;
+          width: fit-content;
+          height: 20px;
+          line-height: 20px;
+          padding-left: 3px;
+          padding-right: 3px;
+          margin-top: 10px;
+        }
+
+        .container {
+          padding: 35px;
+        }
+
+        .mic-container {
+          width: 120px;
+          height: 120px;
+          border-radius: 50%;
+          text-align: center;
+          line-height: 1200px;
+          background-color: #e0e0e0;
+          color: gray;
+          margin-left: auto;
+          margin-right: auto;
+          margin-top: 150px;
+          cursor: pointer;
+        }
+
+        .mic-container > span {
+          font-size: 60px;
+          display: block;
+          line-height: 120px;
+        }
+
+        .mic-on {
+          color: #2d9596;
+        }
+
+        #stopRecording {
+          display: none;
         }
       </style>
+
       <script src="https://cdn.jsdelivr.net/npm/axios@1.6.2/dist/axios.min.js"></script>
       <script src="https://www.WebRTC-Experiment.com/RecordRTC.js"></script>
       <script
@@ -42,20 +114,38 @@
       ></script>
     </head>
     <body>
-      <button id="startRecording">Start</button>
-      <button id="stopRecording">Stop</button>
-      <br />
-      <p id="isRecording" style="margin-top: 10px">
-        Click start button to record
-      </p>
-      <br />
-      <audio
-        src="http://localhost:3000/uploads/user-socket-input.wav"
-        id="audioElement"
-        controls
-      ></audio>
+      <section class="header">
+        <img
+          src="https://openai-chatbot-interface-9ab52001491e.herokuapp.com/assets/conrad-labs-logo.png"
+        />
+        <div class="heading">Conrad Labs</div>
+        <div class="beta">BETA</div>
+      </section>
 
-      <div id="response">No Transcription Available</div>
+      <section class="container">
+        <div id="startRecording" class="mic-container">
+          <span class="material-symbols-outlined"> mic_off </span>
+        </div>
+
+        <div id="stopRecording" class="mic-container">
+          <span class="material-symbols-outlined mic-on"> mic </span>
+        </div>
+<!-- 
+        <button id="startRecording">Start</button>
+        <button id="stopRecording">Stop</button>
+        <br /> -->
+        <!-- <p id="isRecording" style="margin-top: 10px">
+          Click start button to record
+        </p>
+        <br />
+        <audio
+          src="http://localhost:3000/uploads/user-socket-input.wav"
+          id="audioElement"
+          controls
+        ></audio> -->
+
+        <div id="response">No Transcription Available</div>
+      </section>
 
       <script>
         let socket;
@@ -74,6 +164,7 @@
         const DONE = "[DONE]";
         let streamEnded = false;
         let firstAudioPlayCall = false;
+        let responseData = "";
 
         function createSocketConnection() {
           if (!socket) {
@@ -89,6 +180,10 @@
         let isRecording = document.getElementById("isRecording");
 
         function initFunction() {
+          responseData = "";
+          document.getElementById("startRecording").style.display = "none";
+          document.getElementById("stopRecording").style.display = "block";
+
           const synth = window.speechSynthesis;
           stopEventCalled = false;
           startEventCalled = true;
@@ -201,7 +296,7 @@
             }
           }
 
-          isRecording.textContent = "Recording...";
+          //isRecording.textContent = "Recording...";
 
           function handlerFunction(stream) {
             recordAudio = RecordRTC(stream, {
@@ -230,13 +325,16 @@
           startusingBrowserMicrophone(true);
 
           function stopRecording(event) {
+            document.getElementById("startRecording").style.display = "block";
+            document.getElementById("stopRecording").style.display = "none";
+
             if (!stopEventCalled) {
               console.log("Click");
               recordAudio.stopRecording(function (blob) {
                 startTime = new Date().getTime();
               });
 
-              isRecording.textContent = "Click play button to start listening";
+              //isRecording.textContent = "Click play button to start listening";
               socket.emit("microphone", "[DONE]");
               stopEventCalled = true;
               startEventCalled = false;
@@ -257,18 +355,18 @@
             .getElementById("stopRecording")
             .addEventListener("click", stopRecording, false);
 
-          document
-            .getElementById("audioElement")
-            .addEventListener("ended", recordingEnded, false);
+          // document
+          //   .getElementById("audioElement")
+          //   .addEventListener("ended", recordingEnded, false);
         }
 
         function getFormattedTranscribedText(data, time) {
-          return `<i>${data}</i>`;
+          return `<div style="margin-top: 8px;"><i>${data}</i> <b>${time} sec</b></div><br/>`;
         }
 
         socket.on("transcription", function (data) {
           console.log(`Received Transcription... ${data}`);
-          document.getElementById("response").innerHTML = "";
+          document.getElementById("response").innerHTML = "Processing ...";
         });
 
         let context = new AudioContext();
@@ -278,22 +376,24 @@
         socket.on("audio", function (buffer) {
           //audioBuffers.push(buffer);
           //playSound(buffer);
-          context.decodeAudioData(buffer, function(soundBuffer){
-            stream(soundBuffer)
+          context.decodeAudioData(buffer, function (soundBuffer) {
+            stream(soundBuffer);
           });
         });
 
-        function stream(buffer){
-            source = context.createBufferSource();
-            source.buffer = buffer;
-            source.connect(context.destination);
-            source.loop = false;
+        function stream(buffer) {
+          source = context.createBufferSource();
+          source.buffer = buffer;
+          source.connect(context.destination);
+          source.loop = false;
 
-            let contextWindow = (context.currentTime - 1.3) <= 0? 0: (context.currentTime - 1.3);
-            source.start(time + contextWindow);
-            time += buffer.duration
+          console.log(context.currentTime);
+          let contextWindow =
+            context.currentTime - 1.5 <= 0 ? 0 : context.currentTime - 1.5;
+          source.start(time + contextWindow);
+          time += buffer.duration;
         }
-        
+
         function playAudio() {
           if (audioBuffers.length > 0) {
             let buffer = audioBuffers.shift();
@@ -308,11 +408,12 @@
           if (data === DONE) {
             streamEnded = true;
           } else {
+            document.getElementById("response").innerHTML = "";
             endTime = new Date().getTime();
             timeTaken = (endTime - startTime) / 1000;
             console.log(`Response Received In ${timeTaken}`);
-            document.getElementById("response").innerHTML +=
-              getFormattedTranscribedText(data);
+            responseData += getFormattedTranscribedText(data, timeTaken);
+            document.getElementById("response").innerHTML += responseData
             console.log(`Response - ${data}`);
           }
         });
