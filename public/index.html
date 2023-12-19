@@ -97,7 +97,11 @@
         }
 
         .mic-on {
-          color: #2d9596;
+          color: white;
+        }
+
+        .mic-container-on-color{
+          background-color: #2d9596;
         }
 
         #stopRecording {
@@ -127,7 +131,7 @@
           <span class="material-symbols-outlined"> mic_off </span>
         </div>
 
-        <div id="stopRecording" class="mic-container">
+        <div id="stopRecording" class="mic-container mic-container-on-color">
           <span class="material-symbols-outlined mic-on"> mic </span>
         </div>
 <!-- 
@@ -145,6 +149,7 @@
         ></audio> -->
 
         <div id="response">No Transcription Available</div>
+        <audio id="pop" src="https://assets.mixkit.co/active_storage/sfx/2364/2364-preview.mp3"></audio>
       </section>
 
       <script>
@@ -181,6 +186,7 @@
 
         function initFunction() {
           responseData = "";
+          document.getElementById("pop").play();
           document.getElementById("startRecording").style.display = "none";
           document.getElementById("stopRecording").style.display = "block";
 
