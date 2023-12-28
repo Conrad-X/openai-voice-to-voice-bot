@@ -50,14 +50,20 @@
           padding: 10px;
           color: #fff;
           font-family: Roboto;
-          font-weight: 400;
           font-size: 20px;
           line-height: 60px;
+          justify-content: space-between;
+        }
+
+        .header-container{
+          display: flex;
         }
 
         .heading {
+          font-family: Roboto;
           margin-left: 5px;
           line-height: 40px;
+          font-weight: 400;
         }
 
         .beta {
@@ -70,6 +76,12 @@
           padding-left: 3px;
           padding-right: 3px;
           margin-top: 10px;
+        }
+
+        .bot-version{
+          font-size: 20px;
+          margin-right: 8px;
+          font-weight: 300;
         }
 
         .container {
@@ -119,12 +131,15 @@
     </head>
     <body>
       <section class="header">
-        <img
-          src="https://openai-chatbot-interface-9ab52001491e.herokuapp.com/assets/conrad-labs-logo.png"
-        />
-        <div class="heading">Conrad Labs</div>
-        <div class="beta">BETA</div>
-      </section>
+        <div class="header-container">
+           <img
+             src="https://openai-chatbot-interface-9ab52001491e.herokuapp.com/assets/conrad-labs-logo.png"
+           />
+           <div class="heading">Voice Assistant</div>
+           <div class="beta">BETA</div>
+        </div>
+        <div class="bot-version"> v1.2</div>
+     </section>
 
       <section class="container">
         <div id="startRecording" class="mic-container">
