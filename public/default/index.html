@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+  <html>
+    <head>
+      <meta charset="UTF-8" />
+      <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+      <meta name="viewport" content="width=device-width, initial-scale0" />
+      <meta http-equiv="cache-control" content="no-cache" />
+      <meta http-equiv="expires" content="0" />
+      <meta http-equiv="pragma" content="no-cache" />
+      <title>Voice recorder</title>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400;500&display=swap"
+        rel="stylesheet"
+      />
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+      />
+      <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
+      />
+      <style>
+        * {
+          margin: 0px;
+          padding: 0;
+          box-sizing: border-box;
+        }
+
+        button {
+          padding: 7px 20px;
+          cursor: pointer;
+        }
+
+        #response {
+          background-color: #e0e0e0;
+          border-radius: 8px;
+          margin-top: 24px;
+          padding: 12px;
+          width: fit-content;
+          margin-left: auto;
+          margin-right: auto;
+          font-family: Roboto;
+          font-weight: 300;
+          text-align: center;
+        }
+
+        .header {
+          display: flex;
+          background-color: #265073;
+          height: 60px;
+          padding: 10px;
+          color: #fff;
+          font-family: Roboto;
+          font-weight: 400;
+          font-size: 20px;
+          line-height: 60px;
+        }
+
+        .heading {
+          margin-left: 5px;
+          line-height: 40px;
+        }
+
+        .beta {
+          font-size: 12px;
+          background-color: #3f6f98;
+          margin-left: 5px;
+          width: fit-content;
+          height: 20px;
+          line-height: 20px;
+          padding-left: 3px;
+          padding-right: 3px;
+          margin-top: 10px;
+        }
+
+        .container {
+          padding: 35px;
+        }
+
+        .mic-container {
+          width: 120px;
+          height: 120px;
+          border-radius: 50%;
+          text-align: center;
+          line-height: 1200px;
+          background-color: #e0e0e0;
+          color: gray;
+          margin-left: auto;
+          margin-right: auto;
+          margin-top: 150px;
+          cursor: pointer;
+        }
+
+        .mic-container > span {
+          font-size: 60px;
+          display: block;
+          line-height: 120px;
+        }
+
+        .mic-on {
+          color: white;
+        }
+
+        .mic-container-on-color{
+          background-color: #2d9596;
+        }
+
+        #stopRecording {
+          display: none;
+        }
+      </style>
+      <script src="https://cdn.jsdelivr.net/npm/axios@1.6.2/dist/axios.min.js"></script>
+      <script src="https://www.WebRTC-Experiment.com/RecordRTC.js"></script>
+    </head>
+    <body>
+      <section class="header">
+        <img
+          src="https://openai-chatbot-interface-9ab52001491e.herokuapp.com/assets/conrad-labs-logo.png"
+        />
+        <div class="heading">Conrad Labs</div>
+        <div class="beta">BETA</div>
+      </section>
+
+      <section class="container">
+        <div id="startRecording" class="mic-container">
+          <span class="material-symbols-outlined"> mic_off </span>
+        </div>
+
+        <div id="stopRecording" class="mic-container mic-container-on-color">
+          <span class="material-symbols-outlined mic-on"> mic </span>
+        </div>
+
+        <div id="response">No Transcription Available</div>
+        <audio id="pop" src="https://assets.mixkit.co/active_storage/sfx/2364/2364-preview.mp3"></audio>
+        <audio src="" id="audioElement" controls preload="none" style="visibility: hidden;"></audio>
+      </section>
+
+      <script>
+        let transcribedData = "";
+        let formData;
+        let recordAudio;
+        let hasInitialResponse = false;
+        let startTime,
+          timeTaken,
+          endTime = null;
+
+        document
+          .getElementById("startRecording")
+          .addEventListener("click", initFunction);
+        let isRecording = document.getElementById("isRecording");
+
+        /* Start Audio Initializer Function */
+        function initFunction() {
+          document.getElementById("pop").play();
+          document.getElementById("startRecording").style.display = "none";
+          document.getElementById("stopRecording").style.display = "block";
+
+          const synth = window.speechSynthesis;
+
+          /* 
+            A Web Audio API speaking funtion
+            which speaks in a broken Stephen 
+            Hawking type of voice
+          */
+          function speak(content) {
+            const utterThis = new SpeechSynthesisUtterance(content);
+            synth.speak(utterThis);
+          }
+
+          /* 
+            This function is for testing purposes only,
+            It hits an endpoint, which in return streams
+            the data which can be seen on the server's console
+            of terminal
+          */
+          function getResponse(text) {
+            axios
+              .post("http://localhost:3000/respond", { text })
+              .then(function (response) {
+                console.log(response);
+              })
+              .catch(function (err) {
+                console.log(err);
+              });
+          }
+
+          /* Initializes the media device for the browser i.e. Microphone (will check for permissions) */
+          async function getUserMedia(constraints) {
+            if (window.navigator.mediaDevices) {
+              return window.navigator.mediaDevices.getUserMedia(constraints);
+            }
+            let legacyApi =
+              navigator.getUserMedia ||
+              navigator.webkitGetUserMedia ||
+              navigator.mozGetUserMedia ||
+              navigator.msGetUserMedia;
+            if (legacyApi) {
+              return new Promise(function (resolve, reject) {
+                legacyApi.bind(window.navigator)(constraints, resolve, reject);
+              });
+            } else {
+              alert("user api not supported");
+            }
+          }
+
+          //isRecording.textContent = "Recording...";
+
+          function handlerFunction(stream) {
+            recordAudio = RecordRTC(stream, {
+              type: "audio",
+              mimeType: "audio/wav",
+              sampleRate: 44100,
+              desiredSampRate: 16000,
+              timeSlice: 3000,
+              disableLogs: true,
+              recorderType: StereoAudioRecorder,
+              numberOfAudioChannels: 1,
+              checkForInactiveTracks: true,
+              ondataavailable: function (blob) {
+                /*
+                  This will provide you with a blob per 3000 milisecond
+                  createBlob(blob);
+                */
+              },
+            });
+            recordAudio.startRecording();
+          }
+
+          function startusingBrowserMicrophone(boolean) {
+            getUserMedia({ audio: boolean }).then((stream) => {
+              handlerFunction(stream);
+            });
+          }
+
+          startusingBrowserMicrophone(true);
+        }
+
+        function createBlob(blob, isLast = false) {
+          formData = new FormData();
+          formData.append("file", blob);
+          document.getElementById("audioElement").src = URL.createObjectURL(blob);
+          transcribeAudio(formData, isLast);
+        }
+
+        function getFormattedTranscribedData(data, time) {
+          return `<i>${data}</i>   <b>${time} sec</b> <br/>`;
+        }
+
+        async function transcribeAudio(formData, isLast = false) {
+          let startTime = new Date().getTime();
+          let streamEnded = false;
+
+          /*  
+            Appends the last chunk flag which is used within 
+            the API to indicate whether the audio has ended. 
+            ONLY VALID when you're using `ondataavailable` 
+            to get blobs per 3000 ms.
+          */
+          if (isLast) {
+            formData.append("lastChunk", true);
+          }
+
+          const response = await fetch(`http://localhost:3000/upload-v2`, {
+            method: "POST",
+            body: formData,
+          });
+
+          document.getElementById("response").innerHTML = "";
+
+          /* fetches the server sent events */
+          let reader = response.body
+            ?.pipeThrough(new TextDecoderStream())
+            .getReader();
+
+          /* Loads the Mp3 response file generated on the server */
+          document.getElementById(
+            "audioElement"
+          ).src = `http://localhost:3000/uploads/output.mp3?cb=${new Date().getTime()}`;
+
+          document.getElementById("audioElement").load();
+          document.getElementById("audioElement").play();
+
+          /* This flag is used as a hack to end the stream */
+          let streamEndedCounter = 0;
+
+          var endedEventListener = document
+            .getElementById("audioElement")
+            .addEventListener("ended", function () {
+              if (streamEnded) {
+                streamEndedCounter++;
+              }
+
+              if (streamEndedCounter > 1) {
+                document.getElementById("audioElement").removeEventListener("ended", endedEventListener);
+                return;
+              }
+
+              let duration = document.getElementById("audioElement").duration;
+              document.getElementById(
+                "audioElement"
+              ).src = `http://localhost:3000/uploads/output.mp3?cb=${new Date().getTime()}`;
+
+              document.getElementById("audioElement").currentTime = duration;
+              document.getElementById("audioElement").play();
+            });
+
+          /* fetch and display streamed response */
+          while (reader) {
+            let element = document.getElementById("audioElement");
+            let duration = element.duration;
+
+            let stream = await reader.read();
+
+            let endTime = new Date().getTime();
+            let timeTaken = (endTime - startTime) / 1000;
+
+            if (stream.value) {
+              let streamedData = stream.value.replace("data: ", "");
+              document.getElementById("response").innerHTML +=
+                getFormattedTranscribedData(streamedData, timeTaken);
+            }
+
+            if (stream.done) {
+              streamEnded = true;
+              break;
+            }
+          }
+        }
+
+        document
+          .getElementById("stopRecording")
+          .addEventListener("click", (e) => {
+            recordAudio.stopRecording(function (blob) {
+              document.getElementById("startRecording").style.display = "block";
+              document.getElementById("stopRecording").style.display = "none";
+
+              startTime = new Date().getTime();
+              document.getElementById("response").innerHTML = "Processing ...";
+              createBlob(recordAudio.blob, true);
+              document.getElementById("audioElement").src = blob;
+              document.getElementById("audioElement").load();
+            });
+            //isRecording.textContent = "Click play button to start listening";
+          });
+      </script>
+    </body>
+  </html>
+</html>
