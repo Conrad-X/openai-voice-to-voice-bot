@@ -8,7 +8,7 @@ This project is based on server side rendered `node` application that serves mul
             ├── index.html
         ├── other
             ├── index.html
-        ├── sockets          # Used to store the user voice files
+        ├── sockets          
             ├── index.html
         ├── uploads          # Used to store the user voice files
     ├── index.js             # (For testing purpose only) scripts to test third party libraries
