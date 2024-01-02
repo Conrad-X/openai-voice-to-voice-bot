@@ -58,6 +58,9 @@ The numbered circles show the four stages of processing required to achieve the 
   - Run the server on `http://localhost:8000`
 
 ### File Based Response Server
+The OpenAI API can create an audio buffer and also store the audio buffer into a file. The idea of this approach was to transfer the user's audio chunks in form data or a file. The transcribing step processes the file and converts it into a text and generates a streamed response through OpenAI. The chunk of stream are gathered in form of a sentence and sent to the `speak` method to be spoken out, the audio generated is saved in an audio file on the server which is played on the client as the audio data continue to stream in. The following diagram depicts the workflow
+
+<img src="https://github.com/Conrad-X/openai-voice-to-voice-bot/assets/6302514/2d3d0acb-51f9-42b2-8ebe-cc96bb9a4742" width="800" />
 
 ### Sockets Based Server
 
