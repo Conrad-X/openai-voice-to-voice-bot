@@ -60,9 +60,22 @@ The numbered circles show the four stages of processing required to achieve the 
 ### File Based Response Server
 The OpenAI API can create an audio buffer and also store the audio buffer into a file. The idea of this approach was to transfer the user's audio chunks in form data or a file. The transcribing step processes the file and converts it into a text and generates a streamed response through OpenAI. The chunk of stream are gathered in form of a sentence and sent to the `speak` method to be spoken out, the audio generated is saved in an audio file on the server which is played on the client as the audio data continue to stream in. The following diagram depicts the workflow
 
-<img src="https://github.com/Conrad-X/openai-voice-to-voice-bot/assets/6302514/2d3d0acb-51f9-42b2-8ebe-cc96bb9a4742" width="800" />
+<img src="https://github.com/Conrad-X/openai-voice-to-voice-bot/assets/6302514/2d3d0acb-51f9-42b2-8ebe-cc96bb9a4742" width="800" /> 
+
+#### Pros
+- No audio buffer management on client side or server side.
+- The audio plays seemlessly as it's through a file on a server.
+- Fast
+
+#### Cons
+- I/O overhead at scale
+- The infrastucture would require encrypted file system to ensure security and communication.
+- Archiving process would be required to manage the files.
 
 ### Sockets Based Server
+This approach uses full duplex communication between the client and server through sockets. The recording chunks are collected on the server by 3 seconds interval instead of sending a complete recording file to the server. As the chunks are received, they are transcibed and consolidated on the server and once the last chunk is received, they are immediately sent for response generation, this saves time in transcribing a large sentence. The generated response is streamed just like within the previous section and provided to the speaking utility which generates the audio response buffers which are again sent through the server. The following diagram depicts the workflow
+
+<img src="https://github.com/Conrad-X/openai-voice-to-voice-bot/assets/6302514/a8a53bcb-c531-4269-a939-e495249f9d22" width="800" /> 
 
 ### Server-Sent-Events Based Server
 TBD
