@@ -102,7 +102,8 @@ All these formats have been tested over 50 conversations and their times are rec
 
 
 ## Screenshots
-The following shows the screenshot of the server rendered web page in action
+The following shows the screenshot of the server rendered web page in action <br/>
+[Link To Color Palette](https://colorhunt.co/palette/ecf4d69ad0c22d9596265073)
 
 <kbd>
     <img width="350" style="border: 1px solid gray" alt="Screenshot 2024-01-02 at 2 10 03 PM" src="https://github.com/Conrad-X/openai-voice-to-voice-bot/assets/6302514/2c30bef7-cd2b-4417-8597-343cacf40e0a">
