@@ -96,7 +96,7 @@ All these formats have been tested over 50 conversations and their times are rec
 
 | Server Formats      | Average Time (seconds) |
 | ------------------- | ---------------------- |
-| File based          | 5.89                   |
+| File based          | 5.9                    |
 | Sockets based       | 4.4                    |
 | Event based         | TBD                    |
 
