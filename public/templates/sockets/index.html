@@ -69,7 +69,7 @@
         .beta {
           font-size: 12px;
           background-color: #3f6f98;
-          margin-left: 5px;
+          margin-left: 8px;
           width: fit-content;
           height: 20px;
           line-height: 20px;
@@ -132,9 +132,9 @@
     <body>
       <section class="header">
         <div class="header-container">
-           <img
-             src="../../assets/conrad-labs-logo.png"
-           />
+            <img
+              src="../../assets/conrad-labs-logo.png"
+            />
            <div class="heading">Voice Assistant</div>
            <div class="beta">BETA</div>
         </div>
@@ -199,11 +199,22 @@
           firstAudioPlayCall = false;
           time = 0;
 
+          /* 
+            [Testing] A Web Audio API speaking funtion
+            which speaks in a broken Stephen 
+            Hawking type of voice
+          */
           function speak(content) {
             const utterThis = new SpeechSynthesisUtterance(content);
             synth.speak(utterThis);
           }
 
+          /* 
+            [Testing] This function is for testing purposes only,
+            It hits an endpoint, which in return streams
+            the data which can be seen on the server's console
+            of terminal
+          */
           function getResponse(text) {
             axios
               .post("http://localhost:3000/respond", { text })
@@ -380,6 +391,20 @@
           });
         });
 
+        socket.on("response", function (data) {
+          if (data === DONE) {
+            streamEnded = true;
+          } else {
+            document.getElementById("response").innerHTML = "";
+            endTime = new Date().getTime();
+            timeTaken = (endTime - startTime) / 1000;
+            console.log(`Response Received In ${timeTaken}`);
+            responseData += getFormattedTranscribedText(data, timeTaken);
+            document.getElementById("response").innerHTML += responseData
+            console.log(`Response - ${data}`);
+          }
+        });
+        
         function stream(buffer) {
           source = context.createBufferSource();
           source.buffer = buffer;
@@ -388,7 +413,7 @@
 
           console.log(context.currentTime);
           let contextWindow =
-            context.currentTime - 1.5 <= 0 ? 0 : context.currentTime - 1.5;
+            context.currentTime - 1.8 <= 0 ? 0 : context.currentTime - 1.8;
           source.start(time + contextWindow);
           time += buffer.duration;
         }
@@ -403,19 +428,6 @@
           }
         }
 
-        socket.on("response", function (data) {
-          if (data === DONE) {
-            streamEnded = true;
-          } else {
-            document.getElementById("response").innerHTML = "";
-            endTime = new Date().getTime();
-            timeTaken = (endTime - startTime) / 1000;
-            console.log(`Response Received In ${timeTaken}`);
-            responseData += getFormattedTranscribedText(data, timeTaken);
-            document.getElementById("response").innerHTML += responseData
-            console.log(`Response - ${data}`);
-          }
-        });
       </script>
     </body>
   </html>
