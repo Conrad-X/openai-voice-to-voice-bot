@@ -72,7 +72,7 @@
         .beta {
           font-size: 12px;
           background-color: #3f6f98;
-          margin-left: 5px;
+          margin-left: 8px;
           width: fit-content;
           height: 20px;
           line-height: 20px;
@@ -129,9 +129,9 @@
     <body>
       <section class="header">
          <div class="header-container">
-            <img
-              src="https://openai-chatbot-interface-9ab52001491e.herokuapp.com/assets/conrad-labs-logo.png"
-            />
+          <img
+            src="../../assets/conrad-labs-logo.png"
+          />
             <div class="heading">Voice Assistant</div>
             <div class="beta">BETA</div>
          </div>
@@ -219,8 +219,6 @@
               alert("user api not supported");
             }
           }
-
-          //isRecording.textContent = "Recording...";
 
           function handlerFunction(stream) {
             recordAudio = RecordRTC(stream, {
@@ -354,10 +352,10 @@
               startTime = new Date().getTime();
               document.getElementById("response").innerHTML = "Processing ...";
               createBlob(recordAudio.blob, true);
+              
               document.getElementById("audioElement").src = blob;
               document.getElementById("audioElement").load();
             });
-            //isRecording.textContent = "Click play button to start listening";
           });
       </script>
     </body>

@@ -13,7 +13,7 @@ const openai = new OpenAI({
 });
 
 var app = express();
-app.use(express.static(path.join(__dirname, 'public')))
+app.use(express.static(path.join(__dirname, '../public')))
 app.set('etag', false);
 app.use(nocache());
 app.use(bodyParser.json());
@@ -120,7 +120,7 @@ app.post("/upload-v2", upload.single("file"), async function (req, res) {
         data += content;
         checkpoint += content;
 
-        if(checkpoint.includes(",") || checkpoint.includes(".")){
+        if(checkpoint.includes("?") || checkpoint.includes(".")){
           if(!counter){
             await speakV2(checkpoint, true)
             counter = true;

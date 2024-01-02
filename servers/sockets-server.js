@@ -18,7 +18,7 @@ const DONE = "[DONE]";
 var app = express();
 app.set("etag", false);
 app.use(nocache());
-app.use(express.static("public"));
+app.use(express.static(__dirname + '/public'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
@@ -117,11 +117,6 @@ async function speakV2(data, firstToken, socket) {
     console.log("Exception: Speaking at speakV2");
 
     const buffer = Buffer.from(await response.arrayBuffer());
-    if (firstToken) {
-      await fs.promises.writeFile(`public/uploads/output.mp3`, buffer);
-    } else {
-      await fs.promises.appendFile(`public/uploads/output.mp3`, buffer);
-    }
 
     socket.emit("audio", buffer);
     console.log("Done!");

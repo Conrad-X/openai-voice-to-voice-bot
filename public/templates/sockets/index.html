@@ -133,7 +133,7 @@
       <section class="header">
         <div class="header-container">
            <img
-             src="https://openai-chatbot-interface-9ab52001491e.herokuapp.com/assets/conrad-labs-logo.png"
+             src="../../assets/conrad-labs-logo.png"
            />
            <div class="heading">Voice Assistant</div>
            <div class="beta">BETA</div>
@@ -304,8 +304,6 @@
             }
           }
 
-          //isRecording.textContent = "Recording...";
-
           function handlerFunction(stream) {
             recordAudio = RecordRTC(stream, {
               type: "audio",
@@ -337,12 +335,11 @@
             document.getElementById("stopRecording").style.display = "none";
 
             if (!stopEventCalled) {
-              console.log("Click");
+              console.log("Recording Stopped.");
               recordAudio.stopRecording(function (blob) {
                 startTime = new Date().getTime();
               });
 
-              //isRecording.textContent = "Click play button to start listening";
               socket.emit("microphone", "[DONE]");
               stopEventCalled = true;
               startEventCalled = false;
@@ -362,10 +359,6 @@
           document
             .getElementById("stopRecording")
             .addEventListener("click", stopRecording, false);
-
-          // document
-          //   .getElementById("audioElement")
-          //   .addEventListener("ended", recordingEnded, false);
         }
 
         function getFormattedTranscribedText(data, time) {
@@ -382,8 +375,6 @@
         let source;
 
         socket.on("audio", function (buffer) {
-          //audioBuffers.push(buffer);
-          //playSound(buffer);
           context.decodeAudioData(buffer, function (soundBuffer) {
             stream(soundBuffer);
           });
