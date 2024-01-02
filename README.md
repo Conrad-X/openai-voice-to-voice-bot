@@ -65,7 +65,7 @@ The OpenAI API can create an audio buffer and also store the audio buffer into a
 #### Pros
 - No audio buffer management on client side or server side.
 - The audio plays seemlessly as it's through a file on a server.
-- Fast
+- Relatively Faster
 
 #### Cons
 - I/O overhead at scale
@@ -76,6 +76,17 @@ The OpenAI API can create an audio buffer and also store the audio buffer into a
 This approach uses full duplex communication between the client and server through sockets. The recording chunks are collected on the server by 3 seconds interval instead of sending a complete recording file to the server. As the chunks are received, they are transcibed and consolidated on the server and once the last chunk is received, they are immediately sent for response generation, this saves time in transcribing a large sentence. The generated response is streamed just like within the previous section and provided to the speaking utility which generates the audio response buffers which are again sent through the server. The following diagram depicts the workflow
 
 <img src="https://github.com/Conrad-X/openai-voice-to-voice-bot/assets/6302514/a8a53bcb-c531-4269-a939-e495249f9d22" width="800" /> 
+
+#### Pros
+- Audio buffer management required on client and server side
+- Saves time on transcribing large audio files
+- Full duplex communication between server and client, less API calling overhead
+- Response not saved on files
+- Fast
+
+#### Cons
+- Uses sockets, which can cause scaling problems
+- audio buffer management on client side can get tricky
 
 ### Server-Sent-Events Based Server
 TBD
