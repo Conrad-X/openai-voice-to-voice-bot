@@ -31,7 +31,12 @@ The numbered circles show the four stages of processing required to achieve the 
   ```
   OPENAI_API_KEY = "XXXXXXXXXXXXXX"
   ```
-    
+
+- Install Dependencies
+  ```
+  npm install
+  ```
+  
 - Run the following commands
     - To run **File based response server**
         
@@ -50,6 +55,7 @@ The numbered circles show the four stages of processing required to achieve the 
       ```
       npm run start:sse
       ```
+  - Run the server on `http://localhost:8000`
 
 ### File Based Response Server
 
