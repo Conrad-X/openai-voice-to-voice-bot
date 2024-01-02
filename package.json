@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon server.js",
-    "start:socket": "nodemon sockets-server.js",
+    "start:file": "nodemon ./servers/file-based-response-server.js",
+    "start:socket": "nodemon ./servers/sockets-server.js",
+    "start:sse": "nodemon ./servers/events-based-server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

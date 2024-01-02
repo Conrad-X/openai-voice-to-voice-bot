@@ -190,7 +190,7 @@ app.post("/respond", async function (req, res) {
 
 app.get("/", function (req, res) {
   res.set('Cache-Control', 'no-store')
-  res.sendFile(path.join(__dirname, './public/sockets/index.html'));
+  res.sendFile(path.join(__dirname, '../public/templates/sockets/index.html'));
 });
 
 const server = app.listen(3000);

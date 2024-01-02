@@ -4,8 +4,7 @@ const {
   } = require("@aws-sdk/client-transcribe-streaming");
   const { createReadStream } = require("fs");
   const { join } = require("path");
-  
-//   const audio = createReadStream(join(__dirname, "my-media-file.flac"), { highWaterMark: 1024 * 16});
+// const audio = createReadStream(join(__dirname, "my-media-file.flac"), { highWaterMark: 1024 * 16});
   
   const LanguageCode = "en-US";
   const MediaEncoding = "pcm";
