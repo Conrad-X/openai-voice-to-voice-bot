@@ -90,3 +90,12 @@ This approach uses full duplex communication between the client and server throu
 
 ### Server-Sent-Events Based Server
 TBD
+
+## Experiment Readings
+All these formats have been tested over 50 conversations and their times are recorded to get a rough estimation on elapsed time on variable length user queries. The following table shows the readings
+
+| Server Formats      | Average Time (seconds) |
+| ------------------- | ---------------------- |
+| File based          | TBD                    |
+| Sockets based       | 4.4                    |
+| Event based         | TBD                    |
