@@ -89,10 +89,16 @@ This approach uses full duplex communication between the client and server throu
 - audio buffer management on client side can get tricky
 
 ### Server-Sent-Events Based Server
-
+The voice bot is an audio streaming solution, hence using server sent events instead of sockets to transfer the audio buffers emerges as a scalable solution. The audio data is received in form of a formdata at the server, which is transcribed and the chunks of transcribed text is brought together to generate audio buffers which are transferred to the clients through server sent events. The workflow of this solution is depicted in the diagram below
 <img src="https://github.com/Conrad-X/openai-voice-to-voice-bot/assets/6302514/e677a237-caf1-4792-a5bc-6c79e6c47e19" width="800" /> 
 
-TBD
+#### Pros
+- Audio buffer management required on client side
+- CSolution can scale with the underlying instances
+- Response not saved on files
+
+#### Cons
+- audio buffer management on client side can get tricky
 
 ## Experiment Readings
 All these formats have been tested over 50 conversations and their times are recorded to get a rough estimation on elapsed time on variable length user queries. The following table shows the readings
