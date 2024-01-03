@@ -224,7 +224,9 @@
               if (stream.done) {
                 endTime = new Date().getTime();
                 timeTaken = (endTime - startTime) / 1000;
-                processChunks(chunks)
+                await processChunks(chunks)
+                chunks = [];
+                counter = 0;
                 break;
               } else {
                 console.log(stream.value)
@@ -235,8 +237,8 @@
                 else{
                     await processChunks(chunks)
                     chunks = [];
-                    chunks.push(stream.value);
                     counter = 0;
+                    chunks.push(stream.value);
                 }
               }
             }
@@ -250,6 +252,8 @@
             const mergedChunks = Uint8Array.from(chunks.reduce((acc, curr) => [...acc, ...curr], []));
             speakStreamChunk(mergedChunks.buffer)
           }
+
+
 
           function showTextResponse(response){
             document.getElementById("response").innerHTML = "";
