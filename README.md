@@ -89,6 +89,9 @@ This approach uses full duplex communication between the client and server throu
 - audio buffer management on client side can get tricky
 
 ### Server-Sent-Events Based Server
+
+<img src="https://github.com/Conrad-X/openai-voice-to-voice-bot/assets/6302514/e677a237-caf1-4792-a5bc-6c79e6c47e19" width="800" /> 
+
 TBD
 
 ## Experiment Readings
