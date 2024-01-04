@@ -4,7 +4,7 @@
     <head>
       <meta charset="UTF-8" />
       <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-      <meta name="viewport" content="width=device-width, initial-scale0" />
+      <meta name="viewport" content="width=device-width, initial-scale=0" />
       <title>Voice recorder</title>
       <link
         href="https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400;500&display=swap"
@@ -156,24 +156,14 @@
       </section>
 
       <script>
-        let transcribedData = "";
         let formData;
         let recordAudio;
-        let hasInitialResponse = false;
-        let streamEndedCounter = 0;
         let startTime,
           timeTaken,
           endTime = null;
-        let stopEventCalled = false;
-        let startEventCalled = false;
-        let fetchedResponse = [];
-        let audioBuffers = [];
-        const DONE = "[DONE]";
-        let streamEnded = false;
-        let firstAudioPlayCall = false;
         let responseData = "";
-        let context = new AudioContext();
         let source;
+        let context = new AudioContext();
         let time = 0;
 
         document
@@ -181,95 +171,25 @@
           .addEventListener("click", initFunction, false);
         let isRecording = document.getElementById("isRecording");
 
+        document.getElementById("stopRecording").addEventListener(
+          "click",
+          (e) => {
+            recordAudio.stopRecording(function (blob) {
+              document.getElementById("startRecording").style.display = "block";
+              document.getElementById("stopRecording").style.display = "none";
+
+              startTime = new Date().getTime();
+              document.getElementById("response").innerHTML = "Processing ...";
+              createBlob(recordAudio.blob, true);
+            });
+          },
+          false
+        );
+
         function initFunction() {
-          responseData = "";
           document.getElementById("pop").play();
           document.getElementById("startRecording").style.display = "none";
           document.getElementById("stopRecording").style.display = "block";
-
-          stopEventCalled = false;
-          startEventCalled = true;
-          streamEnded = false;
-          firstAudioPlayCall = false;
-          time = 0;
-
-          async function createBlob(blob, isLast = false) {
-            formData = new FormData();
-            formData.append("file", blob);
-            await transcribeAudio(formData, isLast);
-          }
-
-          async function transcribeAudio(formData, isLast = false) {
-            if (isLast) {
-              formData.append("lastChunk", true);
-            }
-
-            const response = await fetch(`http://localhost:3000/upload-v2`, {
-              method: "POST",
-              body: formData,
-            });
-
-            let chatMessage = "";
-            let streamChunkStarted = false;
-            let streamChunkEnded = false;
-            let streamChunkData = "";
-            let reader = response.body.getReader();
-
-            let chunks = []
-            let counter = 0; 
-            const MAX_CHUNK_COUNTER = 3;
-
-            while (reader) {
-              let stream = await reader.read();
-              if (stream.done) {
-                endTime = new Date().getTime();
-                timeTaken = (endTime - startTime) / 1000;
-                await processChunks(chunks)
-                chunks = [];
-                counter = 0;
-                break;
-              } else {
-                console.log(stream.value)
-                if(counter < MAX_CHUNK_COUNTER){
-                    chunks.push(stream.value);
-                    counter++;
-                }
-                else{
-                    await processChunks(chunks)
-                    chunks = [];
-                    counter = 0;
-                    chunks.push(stream.value);
-                }
-              }
-            }
-
-            //chunks.push(stream.value)
-            //const mergedChunks = Uint8Array.from(chunks.reduce((acc, curr) => [...acc, ...curr], []));
-            //speakStreamChunk(mergedChunks.buffer)
-          }
-
-          async function processChunks(chunks){
-            const mergedChunks = Uint8Array.from(chunks.reduce((acc, curr) => [...acc, ...curr], []));
-            speakStreamChunk(mergedChunks.buffer)
-          }
-
-
-
-          function showTextResponse(response){
-            document.getElementById("response").innerHTML = "";
-            endTime = new Date().getTime();
-            timeTaken = (endTime - startTime) / 1000;
-            console.log(`Response Received In ${timeTaken}`);
-            responseData += getFormattedTranscribedText(response, timeTaken);
-            document.getElementById("response").innerHTML += responseData
-            console.log(`Response - ${response}`);
-          }
-
-          function speakStreamChunk(response){
-            context.decodeAudioData(response, function (soundBuffer) {
-                streamAudioBuffer(soundBuffer);
-            })
-          }
 
           async function getUserMedia(constraints) {
             if (window.navigator.mediaDevices) {
@@ -311,28 +231,92 @@
           }
 
           startusingBrowserMicrophone(true);
-
-          document
-            .getElementById("stopRecording")
-            .addEventListener("click", (e) => {
-              recordAudio.stopRecording(function (blob) {
-                document.getElementById("startRecording").style.display =
-                  "block";
-                document.getElementById("stopRecording").style.display = "none";
-
-                startTime = new Date().getTime();
-                document.getElementById("response").innerHTML =
-                  "Processing ...";
-                createBlob(recordAudio.blob, true);
-              });
-            });
         }
 
         function getFormattedTranscribedText(data, time) {
           return `<div style="margin-top: 8px;"><i>${data}</i> <b>${time} sec</b></div>`;
         }
-        
-        function streamAudioBuffer(buffer) {
+
+        async function createBlob(blob, isLast = false) {
+          formData = new FormData();
+          formData.append("file", blob);
+          await transcribeAudio(formData, isLast);
+        }
+
+        async function transcribeAudio(formData, isLast = false) {
+          if (isLast) {
+            formData.append("lastChunk", true);
+          }
+
+          const response = await fetch(`http://localhost:3000/upload-v2`, {
+            method: "POST",
+            body: formData,
+          });
+
+          let chatMessage = "";
+          let streamChunkStarted = false;
+          let streamChunkEnded = false;
+          let streamChunkData = "";
+          let reader = response.body.getReader();
+
+          let chunks = [];
+          let counter = 0;
+          const MAX_CHUNK_COUNTER = 3;
+
+          let audioSubscriber = async function (message, data) {
+            await processChunks(data);
+          };
+          PubSub.subscribe("Audio", audioSubscriber);
+
+          while (reader) {
+            let stream = await reader.read();
+
+            if (stream.done) {
+              endTime = new Date().getTime();
+              timeTaken = (endTime - startTime) / 1000;
+              PubSub.publish("Audio", chunks);
+              chunks = [];
+              counter = 0;
+              break;
+            } else {
+              console.log(stream.value);
+              if (counter < MAX_CHUNK_COUNTER) {
+                chunks.push(stream.value);
+                counter++;
+              } else {
+                PubSub.publish("Audio", chunks);
+                chunks = [];
+                counter = 0;
+                chunks.push(stream.value);
+              }
+            }
+          }
+        }
+
+        async function processChunks(chunks) {
+          const mergedChunks = Uint8Array.from(
+            chunks.reduce((acc, curr) => [...acc, ...curr], [])
+          );
+          speakStreamChunk(mergedChunks.buffer);
+        }
+
+        function showTextResponse(response) {
+          document.getElementById("response").innerHTML = "";
+          endTime = new Date().getTime();
+          timeTaken = (endTime - startTime) / 1000;
+          console.log(`Response Received In ${timeTaken}`);
+          responseData += getFormattedTranscribedText(response, timeTaken);
+          document.getElementById("response").innerHTML += responseData;
+          console.log(`Response - ${response}`);
+        }
+
+        function speakStreamChunk(response) {
+          context.decodeAudioData(response, function (soundBuffer) {
+            streamAudioBuffer(soundBuffer, context);
+          });
+        }
+
+        function streamAudioBuffer(buffer, context) {
           source = context.createBufferSource();
           source.buffer = buffer;
           source.connect(context.destination);
@@ -343,6 +327,7 @@
           time += buffer.duration;
         }
       </script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/pubsub-js/1.9.4/pubsub.min.js"></script>
     </body>
   </html>
 </html>
