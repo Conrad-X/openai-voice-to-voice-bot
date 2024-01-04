@@ -155,6 +155,7 @@
         ></audio>
       </section>
 
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/pubsub-js/1.9.4/pubsub.min.js"></script>
       <script>
         let formData;
         let recordAudio;
@@ -190,6 +191,7 @@
           document.getElementById("pop").play();
           document.getElementById("startRecording").style.display = "none";
           document.getElementById("stopRecording").style.display = "block";
+          time = 0;
 
           async function getUserMedia(constraints) {
             if (window.navigator.mediaDevices) {
@@ -243,6 +245,11 @@
           await transcribeAudio(formData, isLast);
         }
 
+        let audioSubscriber = async function (message, data) {
+            await processChunks(data);
+        };
+        PubSub.subscribe("Audio", audioSubscriber);
+
         async function transcribeAudio(formData, isLast = false) {
           if (isLast) {
             formData.append("lastChunk", true);
@@ -261,17 +268,13 @@
 
           let chunks = [];
           let counter = 0;
-          const MAX_CHUNK_COUNTER = 3;
-
-          let audioSubscriber = async function (message, data) {
-            await processChunks(data);
-          };
-          PubSub.subscribe("Audio", audioSubscriber);
+          const MAX_CHUNK_COUNTER = 2;
 
           while (reader) {
             let stream = await reader.read();
 
             if (stream.done) {
+              console.log("DONE");
               endTime = new Date().getTime();
               timeTaken = (endTime - startTime) / 1000;
               PubSub.publish("Audio", chunks);
@@ -322,12 +325,11 @@
           source.connect(context.destination);
           source.loop = false;
 
-          //let contextWindow = context.currentTime - 1.8 <= 0 ? 0 : context.currentTime - 1.8;
-          source.start(time); //+ contextWindow
+          let contextWindow = context.currentTime;
+          source.start(time + contextWindow);
           time += buffer.duration;
         }
       </script>
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/pubsub-js/1.9.4/pubsub.min.js"></script>
     </body>
   </html>
 </html>

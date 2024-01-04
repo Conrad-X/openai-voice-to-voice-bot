@@ -76,8 +76,6 @@ app.post("/upload-v2", upload.single("file"), async function (req, res) {
     let checkpoint = "";
     let audioResponse;
     counter = false;
-    let commaCounter = 0;
-    const MAX_COMMA_COUNTER = 3;
 
     for await (const chunk of stream) {
       const content = chunk.choices[0].delta.content;
