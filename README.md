@@ -98,7 +98,8 @@ The voice bot is an audio streaming solution, hence using server sent events ins
 - Response not saved on files
 
 #### Cons
-- audio buffer management on client side can get tricky
+- audio buffer management on client side
+- audio buffer sequence is often compromised
 
 ## Experiment Readings
 All these formats have been tested over 50 conversations and their times are recorded to get a rough estimation on elapsed time on variable length user queries. The following table shows the readings
