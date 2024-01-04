@@ -72,6 +72,11 @@ app.post("/upload-v2", upload.single("file"), async function (req, res) {
       stream: true,
     });
 
+    /*
+      let commaCounter = 0;
+      const MAX_COMMA_COUNTER = 3;
+    */
+
     let data = "";
     let checkpoint = "";
     let audioResponse;
@@ -84,19 +89,28 @@ app.post("/upload-v2", upload.single("file"), async function (req, res) {
         data += content;
         checkpoint += content;
 
+        /*
+          For alot of comma driven sentences. 
+
+          if(checkpoint.includes(",")){
+            if(commaCounter <= MAX_COMMA_COUNTER){
+              commaCounter++;
+            }
+            else{
+              audioResponse = await processCheckpoint(counter, checkpoint);
+              res.write(audioResponse);
+              checkpoint = "";
+              commaCounter = 0;
+              continue;
+            }
+          }
+        */
+        
         if (checkpoint.includes("!") || 
           checkpoint.includes(".") || 
           checkpoint.includes("?") 
         ) {
-          if (!counter) {
-            audioResponse = await speakV2(checkpoint, true);
-            counter = true;
-          } else {
-            audioResponse = await speakV2(checkpoint);
-          }
-
-          console.log(`Sending chunk - ${checkpoint}`);
-          console.log(audioResponse)
+          audioResponse = await processCheckpoint(counter, checkpoint);
           res.write(audioResponse);
           checkpoint = "";
         }
@@ -107,6 +121,17 @@ app.post("/upload-v2", upload.single("file"), async function (req, res) {
     res.end();
   }
 });
+
+async function processCheckpoint(counter, checkpoint){
+  if (!counter) {
+    audioResponse = await speakV2(checkpoint, true);
+    counter = true;
+  } else {
+    audioResponse = await speakV2(checkpoint);
+  }
+  console.log(`Sending chunk - ${checkpoint}`);
+  return audioResponse
+}
 
 async function speakV2(data) {
   if (data) {

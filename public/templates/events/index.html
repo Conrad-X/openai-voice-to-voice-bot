@@ -327,7 +327,7 @@
 
           let contextWindow = context.currentTime;
           source.start(time + contextWindow);
-          time += buffer.duration;
+          time += (buffer.duration - 0.4);
         }
       </script>
     </body>
