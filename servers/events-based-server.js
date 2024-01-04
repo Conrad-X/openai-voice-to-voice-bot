@@ -8,12 +8,15 @@ const { pipeline } = require("node:stream/promises");
 const path = require("path")
 require("dotenv").config();
 const compression = require('compression');
+const { Writable } = require('stream');
 
 const openai = new OpenAI({
   apiKey: `${process.env.OPENAI_API_KEY}`,
 });
 
-var app = express();
+let app = express();
+let audioBuffer = [];
+let response = null;
 app.use(compression());
 app.use(express.static(path.join(__dirname, '../public')));
 app.set("etag", false);
@@ -80,7 +83,23 @@ app.post("/upload-v2", upload.single("file"), async function (req, res) {
     let data = "";
     let checkpoint = "";
     let audioResponse;
+    // let firstChunkCall = true;
     counter = false;
+
+    const audioWritableStream = new Writable({
+      write(chunk, encoding, next) {
+        if (!res.write(chunk)) {
+          res.once('drain', next);
+        } else {
+          next();
+        }
+      },
+    });
+
+    audioWritableStream.on('finish', () => {
+      console.log('Stream has ended.');
+      res.end();
+    });
 
     for await (const chunk of stream) {
       const content = chunk.choices[0].delta.content;
@@ -111,16 +130,38 @@ app.post("/upload-v2", upload.single("file"), async function (req, res) {
           checkpoint.includes("?") 
         ) {
           audioResponse = await processCheckpoint(counter, checkpoint);
-          res.write(audioResponse);
+          audioWritableStream.write(audioResponse);
           checkpoint = "";
+          // audioBuffer.push(audioResponse);
+          // if(firstChunkCall){
+          //   response = res;
+          //   sendChunk();
+          //   firstChunkCall = false;
+          // }
+          // checkpoint = "";
         }
       }
     }
 
     console.log("Chunks Sent!");
-    res.end();
+    audioWritableStream.end();
   }
 });
+
+// function sendChunk(){
+//   if(audioBuffer.length > 0 && response){
+//     let audioChunk = audioBuffer.shift();
+
+//     if(!response.write(audioChunk)){
+//       console.log("Stream draining ...");
+//       response.once('drain', sendChunk)
+//     }
+//   }
+//   else{
+//     console.log("Chunks Sent!");
+//     response.end();
+//   }
+// }
 
 async function processCheckpoint(counter, checkpoint){
   if (!counter) {

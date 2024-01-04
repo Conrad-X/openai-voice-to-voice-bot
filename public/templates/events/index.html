@@ -155,7 +155,6 @@
         ></audio>
       </section>
 
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/pubsub-js/1.9.4/pubsub.min.js"></script>
       <script>
         let formData;
         let recordAudio;
@@ -166,6 +165,10 @@
         let source;
         let context = new AudioContext();
         let time = 0;
+
+        let chunks = [];
+        let counter = 0;
+        const MAX_CHUNK_COUNTER = 3;
 
         document
           .getElementById("startRecording")
@@ -245,11 +248,6 @@
           await transcribeAudio(formData, isLast);
         }
 
-        let audioSubscriber = async function (message, data) {
-            await processChunks(data);
-        };
-        PubSub.subscribe("Audio", audioSubscriber);
-
         async function transcribeAudio(formData, isLast = false) {
           if (isLast) {
             formData.append("lastChunk", true);
@@ -265,31 +263,32 @@
           let streamChunkEnded = false;
           let streamChunkData = "";
           let reader = response.body.getReader();
-
-          let chunks = [];
-          let counter = 0;
-          const MAX_CHUNK_COUNTER = 2;
+          chunks = [];
+          counter = 0;
 
           while (reader) {
             let stream = await reader.read();
 
             if (stream.done) {
-              console.log("DONE");
+              console.log("done")
               endTime = new Date().getTime();
               timeTaken = (endTime - startTime) / 1000;
-              PubSub.publish("Audio", chunks);
-              chunks = [];
-              counter = 0;
+              console.log(timeTaken)
+              await processChunks([...chunks])
               break;
-            } else {
-              console.log(stream.value);
-              if (counter < MAX_CHUNK_COUNTER) {
+            } 
+            else {
+              endTime = new Date().getTime();
+              timeTaken = (endTime - startTime) / 1000;
+              console.log(`Received Chunk ...${timeTaken}`);
+              
+              if (counter <= MAX_CHUNK_COUNTER) {
                 chunks.push(stream.value);
                 counter++;
               } else {
-                PubSub.publish("Audio", chunks);
-                chunks = [];
+                await processChunks([...chunks])
                 counter = 0;
+                chunks = [];
                 chunks.push(stream.value);
               }
             }
@@ -300,7 +299,7 @@
           const mergedChunks = Uint8Array.from(
             chunks.reduce((acc, curr) => [...acc, ...curr], [])
           );
-          speakStreamChunk(mergedChunks.buffer);
+          await speakStreamChunk(mergedChunks.buffer);
         }
 
         function showTextResponse(response) {
@@ -313,8 +312,8 @@
           console.log(`Response - ${response}`);
         }
 
-        function speakStreamChunk(response) {
-          context.decodeAudioData(response, function (soundBuffer) {
+        async function speakStreamChunk(response) {
+          await context.decodeAudioData(response, function (soundBuffer) {
             streamAudioBuffer(soundBuffer, context);
           });
         }
@@ -325,9 +324,9 @@
           source.connect(context.destination);
           source.loop = false;
 
-          let contextWindow = context.currentTime;
-          source.start(time + contextWindow);
-          time += (buffer.duration - 0.4);
+          let contextWindow = context.currentTime - 2 <= 0 ? 0 : context.currentTime - 2;
+          source.start(time + contextWindow); 
+          time += buffer.duration;
         }
       </script>
     </body>
