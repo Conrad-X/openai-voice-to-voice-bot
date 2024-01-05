@@ -27,7 +27,7 @@ The `servers` folder comprises of multiple variations of approaches towards a vo
 
 The numbered circles show the four stages of processing required to achieve the results and going through each of the process sequentially can cause alot of latency issues approx (~ 15-20 seconds avg). To adopt parallelism within these four processes, multiple experiments were conducted in terms of approaches which are listed below. Follow the steps below to run the application through these approaches
 
-- Create a .env file comprising of the folling details
+- Rename the file 'env.example' to '.env' and add your openai api key/
   ```
   OPENAI_API_KEY = "XXXXXXXXXXXXXX"
   ```
@@ -55,7 +55,7 @@ The numbered circles show the four stages of processing required to achieve the 
       ```
       npm run start:sse
       ```
-  - Run the server on `http://localhost:8000`
+  - Run the server on `http://localhost:3000`
 
 ### File Based Response Server
 The OpenAI API can create an audio buffer and also store the audio buffer into a file. The idea of this approach was to transfer the user's audio chunks in form data or a file. The transcribing step processes the file and converts it into a text and generates a streamed response through OpenAI. The chunk of stream are gathered in form of a sentence and sent to the `speak` method to be spoken out, the audio generated is saved in an audio file on the server which is played on the client as the audio data continue to stream in. The following diagram depicts the workflow

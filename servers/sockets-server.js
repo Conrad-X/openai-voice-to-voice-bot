@@ -11,6 +11,7 @@ require("dotenv").config();
 
 const openai = new OpenAI({
   apiKey: `${process.env.OPENAI_API_KEY}`,
+  baseURL: `${process.env.OPENAI_API_BASE}`,
 });
 
 const DONE = "[DONE]";
@@ -56,7 +57,7 @@ app.post("/upload-v2", upload.single("file"), async function (req, res) {
     console.log("Responding ....");
 
     const stream = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: process.env.TEXT_RESPONSE_MODEL || "gpt-3.5-turbo",
       messages: [
         {
           role: "system",
@@ -134,14 +135,14 @@ app.post("/upload", upload.single("file"), async function (req, res) {
   if (req.body.lastChunk) {
     console.log("Responding ....");
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch(`${process.env.OPENAI_API_BASE}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "gpt-3.5-turbo",
+        model: process.env.TEXT_RESPONSE_MODEL || "gpt-3.5-turbo",
         messages: [
           {
             role: "user",
@@ -173,7 +174,7 @@ app.post("/respond", async function (req, res) {
   console.log(req.body.text);
 
   const stream = await openai.chat.completions.create({
-    model: "gpt-3.5-turbo",
+    model: process.env.TEXT_RESPONSE_MODEL || "gpt-3.5-turbo",
     messages: [{ role: "user", content: req.body.text }],
     stream: true,
   });
@@ -223,7 +224,7 @@ async function generateResponse(transcribedData, socket) {
 
   if (transcribedData) {
     const stream = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: process.env.TEXT_RESPONSE_MODEL || "gpt-3.5-turbo",
       messages: [
         {
           role: "system",

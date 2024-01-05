@@ -10,6 +10,7 @@ require("dotenv").config();
 
 const openai = new OpenAI({
   apiKey: `${process.env.OPENAI_API_KEY}`,
+  baseURL: `${process.env.OPENAI_API_BASE}`,
 });
 
 var app = express();
@@ -51,14 +52,14 @@ app.post("/upload", upload.single("file"), async function (req, res) {
   if (req.body.lastChunk) {
     console.log("Responding ....");
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch(`${process.env.OPENAI_API_BASE}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "gpt-3.5-turbo",
+        model: process.env.TEXT_RESPONSE_MODEL || "gpt-3.5-turbo",
         messages: [
           {
             role: "user",
@@ -99,7 +100,7 @@ app.post("/upload-v2", upload.single("file"), async function (req, res) {
     console.log("Responding ....");
 
     const stream = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: process.env.TEXT_RESPONSE_MODEL || "gpt-3.5-turbo",
       messages: [
         { role: "system", content: "you are a conversational chatbot, keep it short and keep it precise especially the first sentence. Respond in terms of paragraphs and use commas and full stop where necessary but keep the sentences short as much as possible, avoid bullet point in answers" },
         { role: "system", content: "keep your answers precise and short, make sure they are not greater than 50 words, in case of a longer answer, rephrase it and dont give away all the information instead question the user if they need more information" }, 
@@ -161,7 +162,7 @@ app.post("/respond", async function (req, res) {
   console.log(req.body.text);
 
   const stream = await openai.chat.completions.create({
-    model: "gpt-3.5-turbo",
+    model: process.env.TEXT_RESPONSE_MODEL || "gpt-3.5-turbo",
     messages: [{ role: "user", content: req.body.text }],
     stream: true,
   });
