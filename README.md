@@ -108,7 +108,7 @@ All these formats have been tested over 50 conversations and their times are rec
 | ------------------- | ---------------------- |
 | File based          | 5.9                    |
 | Sockets based       | 4.4                    |
-| Event based         | TBD                    |
+| Event based         | 6.4                    |
 
 
 ## Color Palette
